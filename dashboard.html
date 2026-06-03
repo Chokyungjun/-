@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>원자재 모니터링 대시보드 | 2026-06-04</title>
+    <style>
+        @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: "Pretendard", sans-serif; }
+
+        body {
+            background: #0f1117;
+            color: #e0e0e0;
+            min-height: 100vh;
+            padding: 24px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 32px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #2a2d35;
+        }
+        .header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 6px;
+        }
+        .header .date {
+            font-size: 14px;
+            color: #888;
+        }
+        .header .source {
+            font-size: 12px;
+            color: #555;
+            margin-top: 4px;
+        }
+
+        .section {
+            margin-bottom: 28px;
+        }
+        .section-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: #aab;
+            margin-bottom: 12px;
+            padding-left: 4px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .section-title .icon { font-size: 18px; }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 12px;
+        }
+
+        .card {
+            background: #1a1d27;
+            border: 1px solid #2a2d35;
+            border-radius: 12px;
+            padding: 16px 18px;
+            transition: border-color 0.2s;
+            position: relative;
+            overflow: hidden;
+        }
+        .card:hover {
+            border-color: #444;
+        }
+        .card .top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 8px;
+        }
+        .card .name {
+            font-size: 15px;
+            font-weight: 600;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .card .name .emoji { font-size: 16px; }
+        .card .unit {
+            font-size: 11px;
+            color: #666;
+            margin-top: 2px;
+        }
+        .card .price {
+            font-size: 22px;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 6px;
+        }
+        .card .changes {
+            display: flex;
+            gap: 14px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .card .change-badge {
+            font-size: 13px;
+            font-weight: 600;
+            padding: 3px 8px;
+            border-radius: 6px;
+        }
+        .card .change-badge.up {
+            background: rgba(34, 197, 94, 0.15);
+            color: #22c55e;
+        }
+        .card .change-badge.down {
+            background: rgba(239, 68, 68, 0.15);
+            color: #ef4444;
+        }
+        .card .change-badge.flat {
+            background: rgba(160, 160, 160, 0.15);
+            color: #999;
+        }
+        .card .monthly {
+            font-size: 12px;
+            color: #888;
+        }
+        .card .monthly .val {
+            font-weight: 600;
+        }
+        .card .monthly .val.up { color: #22c55e; }
+        .card .monthly .val.down { color: #ef4444; }
+        .card .monthly .val.flat { color: #999; }
+
+        .card .comment {
+            font-size: 12px;
+            color: #667;
+            margin-top: 10px;
+            line-height: 1.5;
+            border-top: 1px solid #252830;
+            padding-top: 8px;
+        }
+
+        .summary-bar {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-bottom: 28px;
+        }
+        .summary-chip {
+            background: #1a1d27;
+            border: 1px solid #2a2d35;
+            border-radius: 10px;
+            padding: 12px 20px;
+            text-align: center;
+            min-width: 140px;
+        }
+        .summary-chip .label {
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 4px;
+        }
+        .summary-chip .value {
+            font-size: 20px;
+            font-weight: 700;
+        }
+        .summary-chip .value.up { color: #22c55e; }
+        .summary-chip .value.down { color: #ef4444; }
+        .summary-chip .value.neutral { color: #f59e0b; }
+
+        @media (max-width: 640px) {
+            body { padding: 12px; }
+            .grid { grid-template-columns: 1fr; }
+            .header h1 { font-size: 22px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>🏭 원자재 전체 모니터링 대시보드</h1>
+    <div class="date">2026-06-04 (목) | 데이터 기준: TradingEconomics 최신 종가</div>
+    <div class="source">대부분 2026-06-03, 일부 2026-06-02 기준</div>
+</div>
+
+<div class="summary-bar">
+    <div class="summary-chip">
+        <div class="label">일간 상승 종목</div>
+        <div class="value up" id="up-count"></div>
+    </div>
+    <div class="summary-chip">
+        <div class="label">일간 하락 종목</div>
+        <div class="value down" id="down-count"></div>
+    </div>
+    <div class="summary-chip">
+        <div class="label">월간 최강세</div>
+        <div class="value up" id="best-monthly"></div>
+    </div>
+    <div class="summary-chip">
+        <div class="label">월간 최약세</div>
+        <div class="value down" id="worst-monthly"></div>
+    </div>
+</div>
+
+<div id="dashboard"></div>
+
+<script>
+const sections = [
+    {
+        title: "에너지",
+        icon: "⛽",
+        items: [
+            { emoji: "🛢️", name: "WTI 원유", price: 96.164, unit: "USD/Bbl", change: +2.404, changePct: +2.56, monthly: -9.64, comment: "중동 지정학 리스크와 OPEC+ 공급 관리 기대가 단기 반등을 지지했지만, 월간으로는 수요 둔화 우려가 아직 우세합니다." },
+            { emoji: "🛢️", name: "브렌트 원유", price: 98.114, unit: "USD/Bbl", change: +2.114, changePct: +2.20, monthly: -14.27, comment: "해상 물류·중동 프리미엄이 붙었지만, 글로벌 경기 둔화와 재고 부담으로 최근 1개월 흐름은 약합니다." },
+            { emoji: "🔥", name: "천연가스", price: 3.2389, unit: "USD/MMBtu", change: +0.0719, changePct: +2.27, monthly: +12.97, comment: "냉방 수요 기대와 저장 재고 관리 이슈가 가격을 밀어 올리는 모습입니다." },
+            { emoji: "🪨", name: "석탄", price: 141.30, unit: "USD/T", change: +1.00, changePct: +0.71, monthly: +4.24, comment: "아시아 발전용 수요와 대체연료 가격 강세가 석탄 가격 하단을 받치고 있습니다." },
+            { emoji: "☢️", name: "우라늄", price: 86.25, unit: "USD/Lbs", change: +0.30, changePct: +0.35, monthly: -0.23, comment: "원전 회귀 스토리는 유효하지만, 단기적으로는 신규 계약 속도보다 현물 거래가 잠잠한 구간입니다." },
+            { emoji: "🇪🇺", name: "TTF 가스", price: 49.32, unit: "EUR/MWh", change: +1.71, changePct: +3.60, monthly: +2.45, comment: "유럽 저장률 관리와 LNG 유입 경쟁이 재차 부각되며 가스 가격을 끌어올렸습니다." },
+        ]
+    },
+    {
+        title: "귀금속",
+        icon: "👑",
+        items: [
+            { emoji: "🥇", name: "금", price: 4438.81, unit: "USD/t.oz", change: +51.24, changePct: -1.14, monthly: -1.87, comment: "안전자산 수요는 남아 있지만, 실질금리와 달러 강세 압력이 금 상단을 제한하는 모습입니다." },
+            { emoji: "🥈", name: "은", price: 73.352, unit: "USD/t.oz", change: +1.780, changePct: -2.37, monthly: +0.88, comment: "귀금속 성격과 산업금속 성격이 혼재돼 변동성이 큰 구간이며, 태양광 수요 기대는 여전히 유효합니다." },
+            { emoji: "⚪", name: "백금", price: 1872.10, unit: "USD/t.oz", change: +71.20, changePct: -3.66, monthly: -4.56, comment: "자동차 촉매 수요 둔화 우려와 투자 수요 약화가 단기 조정을 만들고 있습니다." },
+            { emoji: "🩶", name: "팔라듐", price: 1334.00, unit: "USD/t.oz", change: +58.50, changePct: -4.20, monthly: -9.96, comment: "내연기관 비중 축소와 대체재 확산 우려가 팔라듐 약세를 이어가고 있습니다." },
+        ]
+    },
+    {
+        title: "비철금속",
+        icon: "⚙️",
+        items: [
+            { emoji: "🔌", name: "구리", price: 6.4734, unit: "USD/Lbs", change: +0.1761, changePct: -2.65, monthly: +11.71, comment: "단기 차익실현이 나왔지만, 전력망·AI 인프라·중국 부양 기대가 월간 상승 흐름을 유지시키고 있습니다." },
+            { emoji: "🥫", name: "알루미늄", price: 3698.00, unit: "USD/T", change: +64.00, changePct: -1.70, monthly: +3.42, comment: "전력비와 제련 공급 제약 이슈가 바닥을 받치지만, 제조업 수요 회복 강도는 아직 확인이 필요합니다." },
+            { emoji: "🔋", name: "니켈", price: 18835, unit: "USD/T", change: +380, changePct: -1.98, monthly: -2.08, comment: "인도네시아 공급 확대 압력이 계속되며 배터리 소재 체인 전반의 가격 협상력이 약합니다." },
+            { emoji: "🛠️", name: "아연", price: 3593.40, unit: "USD/T", change: +47.55, changePct: -1.31, monthly: +6.65, comment: "제련소 운영과 재고 감소 기대가 월간 강세를 만들었지만, 단기적으로는 경기민감 수요가 흔들립니다." },
+            { emoji: "🪙", name: "주석", price: 57960, unit: "USD/T", change: +1311, changePct: +2.31, monthly: +16.57, comment: "전자부품 수요와 일부 공급 차질 우려가 겹치며 강한 상대강세가 이어집니다." },
+            { emoji: "🏭", name: "납", price: 2024.30, unit: "USD/T", change: +23.23, changePct: -1.13, monthly: +2.55, comment: "배터리 교체 수요는 견조하지만, 경기 둔화 우려가 상승 탄력을 일부 제약하고 있습니다." },
+        ]
+    },
+    {
+        title: "배터리·신소재",
+        icon: "🔋",
+        items: [
+            { emoji: "🔋", name: "리튬", price: 170500, unit: "CNY/T", change: +5250, changePct: -2.99, monthly: -9.07, comment: "EV 밸류체인 재고 조정과 중국 내 공급 과잉 압력이 여전히 리튬 약세의 핵심입니다." },
+            { emoji: "🧪", name: "코발트", price: 56290, unit: "USD/T", change: 0, changePct: 0, monthly: 0, comment: "DRC 공급과 배터리 화학 조성 변화가 균형을 이루며 현 시점에서는 박스권에 가깝습니다." },
+            { emoji: "🧲", name: "네오디뮴", price: 945000, unit: "CNY/T", change: 0, changePct: 0, monthly: -9.57, comment: "중국 희토류 정책 변수는 남아 있지만, 하류 자석 수요 회복이 아직 가격 반등으로 연결되진 못했습니다." },
+            { emoji: "🛰️", name: "갈륨", price: 2125.00, unit: "CNY/Kg", change: 0, changePct: 0, monthly: +2.41, comment: "반도체·방산 소재라는 전략물자 성격 때문에 수출통제와 정책 이슈가 가격을 지지하고 있습니다." },
+        ]
+    },
+    {
+        title: "농산물",
+        icon: "🌾",
+        items: [
+            { emoji: "🌾", name: "소맥", price: 586.56, unit: "USd/Bu", change: +16.44, changePct: -2.73, monthly: -6.82, comment: "북반구 작황 기대와 흑해 수출 흐름이 공급 우려를 완화하며 밀 가격을 눌렀습니다." },
+            { emoji: "🌽", name: "옥수수", price: 434.9565, unit: "USd/Bu", change: +5.5435, changePct: -1.26, monthly: -8.19, comment: "미국 작황 개선 기대와 남미 공급 여건이 옥수수 약세를 이어가게 하는 배경입니다." },
+            { emoji: "🫘", name: "대두", price: 1155.65, unit: "USd/Bu", change: +9.60, changePct: -0.82, monthly: -4.29, comment: "남미 수확 물량과 중국 수입 수요 관망이 겹치며 대두는 상단이 무거운 흐름입니다." },
+            { emoji: "🌴", name: "팜유", price: 4677.00, unit: "MYR/T", change: +142.00, changePct: +3.13, monthly: +1.19, comment: "동남아 생산과 바이오디젤 정책 기대가 맞물리며 식물성 유지 가격을 떠받치고 있습니다." },
+            { emoji: "☕", name: "커피", price: 252.40, unit: "USd/Lbs", change: +6.80, changePct: -2.62, monthly: -11.59, comment: "브라질 작황과 물류 정상화 기대가 반영되며 최근 급등분을 되돌리는 모습입니다." },
+            { emoji: "🍬", name: "설탕", price: 14.22, unit: "USd/Lbs", change: +0.16, changePct: -1.11, monthly: -7.00, comment: "브라질 생산 확대 기대와 에탄올 전환 유인이 약해진 점이 설탕 가격에 부담입니다." },
+            { emoji: "🧵", name: "면화", price: 76.253, unit: "USd/Lbs", change: +0.788, changePct: -1.02, monthly: -8.04, comment: "글로벌 의류 수요 둔화와 재고 부담이 면화 시세를 계속 압박하고 있습니다." },
+        ]
+    },
+    {
+        title: "산업원자재",
+        icon: "🏗️",
+        items: [
+            { emoji: "⛏️", name: "철광석", price: 105.13, unit: "USD/T", change: +0.10, changePct: +0.10, monthly: -2.81, comment: "중국 부동산 부진이 상단을 막고 있지만, 단기 생산 조절 기대가 추가 급락은 막고 있습니다." },
+            { emoji: "🪵", name: "목재", price: 593.06, unit: "USD/1000bf", change: +4.56, changePct: +0.77, monthly: +3.32, comment: "북미 주택 착공과 제재소 공급 조정이 목재 가격의 완만한 반등을 지지합니다." },
+            { emoji: "🛞", name: "고무", price: 234.50, unit: "USDc/Kg", change: +5.50, changePct: +2.40, monthly: +8.41, comment: "동남아 기상 변수와 타이어 수요 회복 기대가 맞물리며 고무는 강세를 유지하고 있습니다." },
+        ]
+    }
+];
+
+function formatPrice(price) {
+    if (price >= 100000) return price.toLocaleString('ko-KR', { maximumFractionDigits: 0 });
+    if (price >= 1000) return price.toLocaleString('ko-KR', { maximumFractionDigits: 2 });
+    if (price >= 100) return price.toLocaleString('ko-KR', { maximumFractionDigits: 2 });
+    if (price >= 10) return price.toLocaleString('ko-KR', { maximumFractionDigits: 4 });
+    return price.toLocaleString('ko-KR', { maximumFractionDigits: 4 });
+}
+
+function cls(val) {
+    if (val > 0) return 'up';
+    if (val < 0) return 'down';
+    return 'flat';
+}
+
+function sign(val) {
+    if (val > 0) return '+';
+    return '';
+}
+
+let allItems = sections.flatMap(s => s.items);
+let upCount = allItems.filter(i => i.changePct > 0).length;
+let downCount = allItems.filter(i => i.changePct < 0).length;
+
+let sorted = [...allItems].sort((a, b) => b.monthly - a.monthly);
+let best = sorted[0];
+let worst = sorted[sorted.length - 1];
+
+document.getElementById('up-count').textContent = upCount + '개';
+document.getElementById('down-count').textContent = downCount + '개';
+document.getElementById('best-monthly').textContent = best.name + ' ' + sign(best.monthly) + best.monthly + '%';
+document.getElementById('worst-monthly').textContent = worst.name + ' ' + worst.monthly + '%';
+
+let dashboard = document.getElementById('dashboard');
+
+sections.forEach(section => {
+    let sectionEl = document.createElement('div');
+    sectionEl.className = 'section';
+
+    sectionEl.innerHTML = `<div class="section-title"><span class="icon">${section.icon}</span> ${section.title}</div>`;
+
+    let grid = document.createElement('div');
+    grid.className = 'grid';
+
+    section.items.forEach(item => {
+        let card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `
+            <div class="top-row">
+                <div>
+                    <div class="name"><span class="emoji">${item.emoji}</span> ${item.name}</div>
+                    <div class="unit">${item.unit}</div>
+                </div>
+            </div>
+            <div class="price">${formatPrice(item.price)}</div>
+            <div class="changes">
+                <span class="change-badge ${cls(item.changePct)}">
+                    ${sign(item.changePct)}${item.changePct.toFixed(2)}%
+                </span>
+                <span class="monthly">월간 <span class="val ${cls(item.monthly)}">${sign(item.monthly)}${item.monthly.toFixed(2)}%</span></span>
+            </div>
+            <div class="comment">${item.comment}</div>
+        `;
+        grid.appendChild(card);
+    });
+
+    sectionEl.appendChild(grid);
+    dashboard.appendChild(sectionEl);
+});
+</script>
+
+</body>
+</html>
