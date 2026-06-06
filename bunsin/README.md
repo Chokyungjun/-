@@ -68,9 +68,32 @@ cp .env.example .env
 
 ---
 
-## 🔁 24시간 띄우기 (집 서버에서 꺼지지 않게)
+## 🍎 맥미니 24시간 구동 (권장 — launchd)
 
-**리눅스 (systemd):**
+맥은 `systemd`가 아니라 **launchd**를 쓴다. 설치 스크립트가 다 해준다:
+
+```bash
+cd bunsin
+cp .env.example .env      # 키 2개 채우기 (TELEGRAM_BOT_TOKEN, ANTHROPIC_API_KEY)
+./install-mac.sh          # 가상환경 설치 + LaunchAgent 등록 + 즉시 가동
+```
+
+이러면:
+- 맥미니 **부팅/로그인 때 자동으로 켜지고**, 죽어도 **자동 재시작**(KeepAlive)
+- 로그는 `bunsin.log` 에 쌓임
+
+| 할 일 | 명령 |
+|---|---|
+| 로그 실시간 보기 | `tail -f bunsin.log` |
+| 끄기 | `launchctl unload ~/Library/LaunchAgents/com.bunsin.bot.plist` |
+| 다시 켜기 | `launchctl load ~/Library/LaunchAgents/com.bunsin.bot.plist` |
+
+> 💡 맥미니 전원·절전 팁: `시스템 설정 → 에너지`에서 **"가능하면 컴퓨터를 자동으로 잠자지 않게"** 켜두면 24시간 안 끊긴다. (또는 터미널에서 `sudo pmset -a sleep 0`)
+> python3 없으면 먼저: `brew install python` 또는 `xcode-select --install`
+
+---
+
+## 🔁 24시간 띄우기 — 리눅스 서버일 때 (systemd)
 ```ini
 # /etc/systemd/system/bunsin.service
 [Unit]
